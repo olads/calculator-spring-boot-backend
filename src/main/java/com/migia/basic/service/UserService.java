@@ -1,7 +1,9 @@
 package com.migia.basic.service;
 
 import com.migia.basic.models.Authority;
+import com.migia.basic.models.History;
 import com.migia.basic.models.User;
+import com.migia.basic.repository.HistoryRepository;
 import com.migia.basic.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -15,10 +17,12 @@ import org.springframework.stereotype.Service;
 public class UserService implements UserDetailsService {
     UserRepository repository;
     PasswordEncoder passwordEncoder;
+    HistoryRepository historyRepository;
 
-    public UserService(UserRepository repository, PasswordEncoder encoder){
+    public UserService(UserRepository repository, PasswordEncoder encoder, HistoryRepository historyRepository){
         this.repository = repository;
         this.passwordEncoder = encoder;
+        this.historyRepository = historyRepository;
     }
 
     @Override
@@ -37,5 +41,16 @@ public class UserService implements UserDetailsService {
         User user = new User(name,email,passwordEncoder.encode(password), Authority.USER);
         if(repository.findByName(name) == null)
         repository.save(user);
+    }
+
+    public void saveUser(User user){
+        if(repository.findByName(user.getName()) == null){
+            repository.save(user);
+        }
+    }
+
+    public String addHistory(History history){
+        historyRepository.save(history);
+        return "Saved";
     }
 }

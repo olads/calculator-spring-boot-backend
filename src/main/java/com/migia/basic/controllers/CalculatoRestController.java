@@ -4,11 +4,15 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import com.migia.basic.models.Authority;
+import com.migia.basic.models.History;
 import com.migia.basic.models.User;
 import com.migia.basic.repository.UserRepository;
 import com.migia.basic.security.jwt.JwtUtils;
 import com.migia.basic.service.EvaluateMathService;
+import com.migia.basic.service.HistoryService;
+import com.migia.basic.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
@@ -21,71 +25,40 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 
-@CrossOrigin(origins = "*", maxAge = 3600)
+@CrossOrigin(origins="http://localhost:3000",allowedHeaders = "*",allowCredentials = "true")
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/calculator")
 public class CalculatoRestController {
-
-    @Autowired
-    AuthenticationManager authenticationManager;
-    @Autowired
-    UserRepository userRepository;
-
-    @Autowired
-    PasswordEncoder encoder;
-    @Autowired
-    JwtUtils jwtUtils;
 
     @Autowired
     EvaluateMathService calculator;
 
-    @PostMapping("/signin")
-    public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
-        Authentication authentication = authenticationManager
-                .authenticate(new UsernamePasswordAuthenticationToken(loginRequest.getName(), loginRequest.getPassword()));
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-        User userDetails = (User) authentication.getPrincipal();
-        ResponseCookie jwtCookie = jwtUtils.generateJwtCookie(userDetails);
-        List<String> roles = userDetails.getAuthorities().stream()
-                .map(item -> item.getAuthority())
-                .collect(Collectors.toList());
-
-        return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, jwtCookie.toString())
-                .body(new UserInfoResponse(userDetails.getId(),
-                        userDetails.getUsername(),
-                        userDetails.getEmail()
-                        ));
-    }
-    @PostMapping("/signup")
-    public ResponseEntity<?> registerUser(@Valid @RequestBody SignupRequest signUpRequest) {
-        System.out.println(signUpRequest.getUsername() +" " + signUpRequest.getPassword());
-        if (userRepository.existsByName(signUpRequest.getUsername())) {
-            return ResponseEntity.badRequest().body(new MessageResponse("Error: Username is already taken!"));
-        }
-        if (userRepository.existsByEmail(signUpRequest.getEmail())) {
-            return ResponseEntity.badRequest().body(new MessageResponse("Error: Email is already in use!"));
-        }
-        // Create new user's account
-        User user = new User(signUpRequest.getUsername(),
-                signUpRequest.getEmail(),
-                encoder.encode(signUpRequest.getPassword()),
-                Authority.USER);
-
-        userRepository.save(user);
-        System.out.println("User registered successfully!");
-        return ResponseEntity.ok(new MessageResponse("User registered successfully!"));
-    }
-    @PostMapping("/signout")
-    public ResponseEntity<?> logoutUser() {
-        ResponseCookie cookie = jwtUtils.getCleanJwtCookie();
-        return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, cookie.toString())
-                .body(new MessageResponse("You've been signed out!"));
-    }
+    @Autowired
+    HistoryService historyService;
 
     @PostMapping("/calculate")
     public String calculate(@RequestBody MessageResponse expr){
-        return String.valueOf(calculator.getResult(expr.getMessage()));
+        double value = calculator.getResult(expr.getMessage());
+         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+         History history = new History(expr.getMessage(),value);
+        // System.out.println(user.getHistories().toString());
+        historyService.saveHistory(history,user);
+        return String.valueOf(value);
     }
+
+  @PostMapping("/addhistory")
+    public String addHistory(@RequestBody History history){
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        historyService.saveHistory(history,user);
+       return "Works";
+  }
+
+  @GetMapping("/history")
+    public List<History> getHistory(){
+      User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+      return historyService.retrieveHistories(user.getId());
+
+  }
 }
 
 

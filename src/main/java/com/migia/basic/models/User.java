@@ -5,18 +5,11 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import javax.persistence.*;
+import java.util.*;
 
 @Getter
 @Setter
-@ToString
 @Entity
 public class User implements UserDetails {
 
@@ -30,14 +23,27 @@ public class User implements UserDetails {
     private String password;
     private Authority authority;
 
+
+    @OneToMany(mappedBy = "user",fetch = FetchType.LAZY,cascade = CascadeType.ALL)
+    public List<History> histories;
+
+
     public User(String name, String email,String password, Authority auth){
         this.name = name;
         this.email = email;
         this.password = password;
         this.authority = auth;
+        histories = new ArrayList<>();
     }
+
+
     public User(){
 
+    }
+
+    public void addHistory(String expr, double ans){
+        var history = new History(expr,ans);
+        histories.add(history);
     }
 
     public void getId(long id) {
@@ -81,5 +87,16 @@ public class User implements UserDetails {
     @Override
     public boolean isEnabled() {
         return true;
+    }
+
+    @Override
+    public String toString() {
+        return "User{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                ", email='" + email + '\'' +
+                ", password='" + password + '\'' +
+                ", authority=" + authority +
+                '}';
     }
 }

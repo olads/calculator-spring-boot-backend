@@ -1,5 +1,7 @@
 package com.migia.basic.security;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.stereotype.Component;
@@ -11,11 +13,14 @@ import java.io.IOException;
 
 @Component
 public class AuthEntryPointJwt implements AuthenticationEntryPoint {
-@Override
-public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException)
-    throws IOException, ServletException {
+    private final static Logger logger = LoggerFactory.getLogger(AuthEntryPointJwt.class);
+    @Override
+    public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException)
+            throws IOException, ServletException {
+        logger.info("In the commence function of AuthEntryPointJwt");
 
-response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Error: Unauthorized");
-}
+       // logger.info(request.getCookies()[0].getName());
+        response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Error: Unauthorized");
+    }
 }
 
